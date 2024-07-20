@@ -1,13 +1,11 @@
 ﻿using BiTLuZ.InfraLib;
-using Client.Models;
 using Client.Services;
-using Moq;
 using Xunit;
 using Assert = Xunit.Assert;
 
 namespace Client.ViewModels.Tests;
 
-public class TestPathsProvider : IAppPathsProvider,IPathsProvider
+public class TestPathsProvider : IAppPathsProvider, IPathsProvider
 {
 	public string GetAppFolder()
 	{
@@ -30,7 +28,7 @@ public class MainViewModelTests
 		var appLogger = new AppLogger(pathsProvider);
 		var activityService = new ActivityService(pathsProvider);
 		var activityGroupService = new ActivityGroupService(pathsProvider, appLogger, activityService);
-		_sut = new MainViewModel(activityGroupService,activityService);
+		_sut = new MainViewModel(activityGroupService, activityService);
 	}
 
 	[Fact(DisplayName = "Constructor")]
@@ -51,10 +49,10 @@ public class MainViewModelTests
 		// Act
 		var result = await _sut.Initialize();
 		// Assert
-		Assert.True(result.IsSuccess,result.Message);
+		Assert.True(result.IsSuccess, result.Message);
 		Assert.NotNull(_sut.Activities);
 		Assert.NotNull(_sut.ActivityGroups);
-		Assert.True(_sut.ActivityGroups.Count > 0,"The activity groups must contain at least the Ungrouped group");
+		Assert.True(_sut.ActivityGroups.Count > 0, "The activity groups must contain at least the Ungrouped group");
 
 	}
 
@@ -68,9 +66,10 @@ public class MainViewModelTests
 		// Act
 		_sut.AddGroupCommand.Execute(null);
 		// Assert
-		Assert.True(_sut.ActivityGroups.Count>1);
+		Assert.True(_sut.ActivityGroups.Count > 1);
 		Assert.Empty(_sut.ActivityGroups[^1].Activities);
 		Assert.Equal("New Group", _sut.ActivityGroups[^1].Name);
+		Assert.True(_sut.ActivityFiles.Count > 0,"There must be at least one activity file present");
 	}
 
 	[Fact(DisplayName = "AddPatternCommand adds a new pattern if the condition is met")]
@@ -84,7 +83,7 @@ public class MainViewModelTests
 		// Act
 		_sut.AddPatternCommand.Execute(null);
 		// Assert
-		Assert.True(_sut.SelectedGroup.Patterns.Count>0);
+		Assert.True(_sut.SelectedGroup.Patterns.Count > 0);
 		Assert.Empty(_sut.SelectedGroup.Patterns[^1].Activities);
 		Assert.Equal("New Pattern", _sut.SelectedGroup.Patterns[^1].Sentence);
 	}
@@ -99,7 +98,7 @@ public class MainViewModelTests
 		// Act
 		_sut.AddPatternCommand.Execute(null);
 		// Assert
-		Assert.Empty(_sut.SelectedGroup.Patterns.Where(x=>string.IsNullOrEmpty(x.Sentence)));
+		Assert.Empty(_sut.SelectedGroup.Patterns.Where(x => string.IsNullOrEmpty(x.Sentence)));
 	}
 
 	[Fact(DisplayName = "AddPatternCommand doesn't add a new pattern if the selected group is null")]
@@ -124,7 +123,7 @@ public class MainViewModelTests
 		_sut.SelectedGroup = _sut.ActivityGroups[0];
 		_sut.NewPatternInput = patternName;
 		_sut.AddPatternCommand.Execute(null);
-		Assert.True(_sut.SelectedGroup.Patterns.Count>0);
+		Assert.True(_sut.SelectedGroup.Patterns.Count > 0);
 		// Act
 		_sut.RemovePatternCommand.Execute(patternName);
 		// Assert

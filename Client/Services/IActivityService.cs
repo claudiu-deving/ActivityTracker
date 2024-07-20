@@ -6,5 +6,6 @@ namespace Client.Services
 	{
 		void SetCurrentActivityFile(string file);
 		ServiceResponse<List<Activity>> GetActivities();
+		ServiceResponse<List<string>> GetActivityFiles();
 	}
 }

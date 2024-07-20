@@ -27,7 +27,7 @@ public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityServ
 
 			var currentActivityFile = _files.FirstOrDefault();
 
-			_currentFile = currentActivityFile?? Path.Combine(directory, $"window_times_filtered_{DateTime.Now:dd.MM.yy}.json");
+			_currentFile = currentActivityFile ?? Path.Combine(directory, $"window_times_filtered_{DateTime.Now:dd.MM.yy}.json");
 
 			return ReadCurrentActivityFile(_currentFile);
 		}
@@ -88,8 +88,20 @@ public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityServ
 
 	public void SetCurrentActivityFile(string file)
 	{
-		_currentFile = file;
+		_currentFile = Path.Combine(appPathsProvider.GetAppFolder(), file);
 
 		ReadCurrentActivityFile(_currentFile);
+	}
+
+	public ServiceResponse<List<string>> GetActivityFiles()
+	{
+		try
+		{
+		return	ServiceResponse<List<string>>.Success(_files.Select(x => Path.GetFileName(x)).ToList());
+		}
+		catch (Exception ex)
+		{
+			return ServiceResponse<List<string>>.Fail(ex.Message);
+		}
 	}
 }

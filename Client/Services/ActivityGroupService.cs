@@ -212,4 +212,9 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 		_remainingActivities = getActivitiesResponse.Data;
 		return true;
 	}
+
+	public List<Activity> GetRemainingActivities()
+	{
+		return _remainingActivities;
+	}
 }

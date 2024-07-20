@@ -20,7 +20,7 @@ internal class CompositionRootBuilder
 		_serviceCollection.AddSingleton<IPathsProvider, PathsProvider>();
 		_serviceCollection.AddSingleton<IAppPathsProvider, PathsProvider>();
 		_serviceCollection.AddSingleton<IAppLogger, AppLogger>();
-
+		_serviceCollection.AddSingleton<IActivityService, ActivityService>();	
 		_serviceCollection.AddSingleton<IActivityGroupService, ActivityGroupService>();
 		// Register view models
 		_serviceCollection.AddSingleton<MainViewModel>();
@@ -28,7 +28,7 @@ internal class CompositionRootBuilder
 		_serviceCollection.AddSingleton<MainWindow>();
 		var serviceProvider = _serviceCollection.BuildServiceProvider();
 		var viewModelInitialization =  await serviceProvider.GetService<MainViewModel>()!.Initialize();
-		if(viewModelInitialization != null)
+		if(!viewModelInitialization.IsSuccess)
 		{
 			MessageBox.Show(viewModelInitialization.Message);
 		}

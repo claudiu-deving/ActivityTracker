@@ -32,8 +32,23 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private ObservableCollection<ActivityGroup> _activityGroups;
 
 	private ColorItem _colorItem;
-	[ObservableProperty]
-	private string _currentActivityFile;
+
+	private string _currentActivityFile=string.Empty;
+	public string CurrentActivityFile
+	{
+		get => _currentActivityFile;
+		set
+		{
+			if (!_currentActivityFile.Equals(value))
+			{
+				_currentActivityFile = value;
+				OnPropertyChanged();
+				_activityService.SetCurrentActivityFile(value);
+				_activityGroupService.RegroupActivities();
+				UpdateActivityGroups();
+			}
+		}
+	}
 
 	[ObservableProperty]
 	private string _newPatternInput;
@@ -106,8 +121,20 @@ public partial class MainViewModel : ObservableObject, IInitializable
 			}
 			Activities = new(getActivitiesResponse.Data);
 			UpdateActivityGroups();
+			InitializeActivityFiles();
+			RedrawGraph();
 			return ServiceResponse<bool>.Success(true);
 		});
+	}
+
+	private void InitializeActivityFiles()
+	{
+		var filesRetrievalResponse = _activityService.GetActivityFiles();
+		if(!filesRetrievalResponse.IsSuccess || filesRetrievalResponse.Data is null)
+		{
+			MessageBox.Show(filesRetrievalResponse.Message);
+		}
+		ActivityFiles = new(filesRetrievalResponse.Data!);
 	}
 
 	private void ActivityGroups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -207,6 +234,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private bool UpdateActivityGroups()
 	{
 		var response = _activityGroupService.GetActivityGroups();
+		RemainingActivities = new ( _activityGroupService.GetRemainingActivities());
 		if (response.IsSuccess && response.Data is not null)
 		{
 			ActivityGroups = new(response.Data);

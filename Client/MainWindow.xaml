@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:Client"
     xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="[models ]clr-namespace:Client.Models"
     xmlns:viewmodels="clr-namespace:Client.ViewModels"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     Title="Activity Analyzer"
@@ -182,7 +183,13 @@
             <ListBox
                 Grid.Row="1"
                 Grid.Column="2"
-                ItemsSource="{Binding RemainingActivities}" />
+                ItemsSource="{Binding RemainingActivities}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="models:Activity">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
 
     </Grid>

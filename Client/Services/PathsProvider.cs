@@ -7,7 +7,7 @@ namespace Client.Services
 	{
 		public string GetAppFolder()
 		{
-			return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+			return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyServiceData");
 		}
 
 		public string GetGroupsJsonPath()
