@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker", "ActivityTracker.csproj", "{6CF91301-C463-4569-855E-06B9F193E9E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActivityTrackerService", "..\ActivityTrackerService\ActivityTrackerService.csproj", "{D663EF84-EE27-4292-91FD-5D3835258EAD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "..\Client\Client.csproj", "{7B207E8B-BCF9-4BCB-A1A6-F228AC0FDEDA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LLMLibrary", "..\LLMLibrary\LLMLibrary.csproj", "{D985FC77-292E-4FB8-A739-2EBF8E8EB718}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientTests", "..\ClientTests\ClientTests.csproj", "{2F4DB133-6D12-483C-8180-EC43F0E50558}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BiTLuZ.InfraLib", "..\..\..\Libraries\Bitluz.InfraLib\BiTLuZ.InfraLib\BiTLuZ.InfraLib.csproj", "{49AA0D04-E876-47B8-BD33-4E6C8397A582}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6CF91301-C463-4569-855E-06B9F193E9E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CF91301-C463-4569-855E-06B9F193E9E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CF91301-C463-4569-855E-06B9F193E9E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CF91301-C463-4569-855E-06B9F193E9E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D663EF84-EE27-4292-91FD-5D3835258EAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D663EF84-EE27-4292-91FD-5D3835258EAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D663EF84-EE27-4292-91FD-5D3835258EAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D663EF84-EE27-4292-91FD-5D3835258EAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B207E8B-BCF9-4BCB-A1A6-F228AC0FDEDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B207E8B-BCF9-4BCB-A1A6-F228AC0FDEDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B207E8B-BCF9-4BCB-A1A6-F228AC0FDEDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B207E8B-BCF9-4BCB-A1A6-F228AC0FDEDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D985FC77-292E-4FB8-A739-2EBF8E8EB718}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D985FC77-292E-4FB8-A739-2EBF8E8EB718}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D985FC77-292E-4FB8-A739-2EBF8E8EB718}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D985FC77-292E-4FB8-A739-2EBF8E8EB718}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F4DB133-6D12-483C-8180-EC43F0E50558}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F4DB133-6D12-483C-8180-EC43F0E50558}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F4DB133-6D12-483C-8180-EC43F0E50558}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F4DB133-6D12-483C-8180-EC43F0E50558}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0A23C2A9-DF92-4ED2-9695-0222CD3F32A2}
+	EndGlobalSection
+EndGlobal
