@@ -2,5 +2,5 @@
 
 public interface IInitializable
 {
-	Task<bool> Initialize();
+	Task<ServiceResponse<bool>> Initialize();
 }

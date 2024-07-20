@@ -1,5 +1,6 @@
 ﻿using Client.Models;
 using System.IO;
+using System.Text.Json;
 
 namespace Client.Services;
 
@@ -16,7 +17,7 @@ public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityServ
 			var directory = appPathsProvider.GetAppFolder();
 			if (!Directory.Exists(directory))
 			{
-				return ServiceResponse<List<Activity>>.Fail($"The app folder in app data doesn't exist");
+				Directory.CreateDirectory(directory);
 			}
 			var filteredJsonFiles = Directory.GetFiles(directory, "window_times_filtered_*.json");
 			foreach (var file in filteredJsonFiles)
@@ -26,11 +27,7 @@ public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityServ
 
 			var currentActivityFile = _files.FirstOrDefault();
 
-			if (currentActivityFile == null)
-			{
-				return ServiceResponse<List<Activity>>.Fail($"No activity files found in app data folder");
-			}
-			_currentFile = currentActivityFile;
+			_currentFile = currentActivityFile?? Path.Combine(directory, $"window_times_filtered_{DateTime.Now:dd.MM.yy}.json");
 
 			return ReadCurrentActivityFile(_currentFile);
 		}
@@ -45,6 +42,10 @@ public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityServ
 		try
 		{
 			_activities.Clear();
+			if (!File.Exists(file))
+			{
+				File.WriteAllText(file, JsonSerializer.Serialize(new Dictionary<string, TimeSpan>()));
+			}
 			var jsonText = File.ReadAllText(file);
 
 			var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, TimeSpan>>(jsonText);

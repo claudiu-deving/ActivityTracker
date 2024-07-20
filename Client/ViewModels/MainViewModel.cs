@@ -90,23 +90,23 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		Paint = new SolidColorPaint(SKColors.DarkSlateGray)
 	};
 
-	public async Task<bool> Initialize()
+	public async Task<ServiceResponse<bool>> Initialize()
 	{
-		return await Task.Run(async () => { 
-			if(!await ((IInitializable)_activityGroupService).Initialize())
+		return await Task.Run(async () => {
+			var serviceInitializationResponse = await ((IInitializable)_activityGroupService).Initialize();
+			if (!serviceInitializationResponse.IsSuccess)
 			{
-				return false;
+				return ServiceResponse<bool>.Fail(serviceInitializationResponse.Message);
 			}
 			_activityGroupService.RegroupActivities();
 			 var getActivitiesResponse =_activityService.GetActivities();
 			if (!getActivitiesResponse.IsSuccess || getActivitiesResponse.Data is null)
 			{
-			 //TODO: Present error message
-			 return false;
+				return ServiceResponse<bool>.Fail(getActivitiesResponse.Message);
 			}
 			Activities = new(getActivitiesResponse.Data);
-
-			return true;
+			UpdateActivityGroups();
+			return ServiceResponse<bool>.Success(true);
 		});
 	}
 

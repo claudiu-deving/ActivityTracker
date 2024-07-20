@@ -12,7 +12,6 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 	private readonly IPathsProvider _pathsProvider;
 	private readonly IAppLogger _appLogger;
 	private readonly IActivityService _activityService;
-	private static int _instanceCounter;
 	public ActivityGroupService(IPathsProvider pathsProvider, IAppLogger appLogger,IActivityService activityService)
 	{
 		_activityGroups = [];
@@ -23,29 +22,28 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 		{
 			Converters = { new SKColorJsonConverter() }
 		};
-		_instanceCounter++;
-		Console.WriteLine(_instanceCounter);
 	}
 
-	public async Task<bool> Initialize()
+	public async Task<ServiceResponse<bool>> Initialize()
 	{
 		return await Task.Run(ReadFromFile);
 	}
 
-	private bool ReadFromFile()
+	private ServiceResponse<bool> ReadFromFile()
 	{
 		try
 		{
 			var filePath = _pathsProvider.GetGroupsJsonPath();
 			if (!File.Exists(filePath))
 			{
-				return false;
+				File.WriteAllText(filePath, "[]");
 			}
 			var jsonText = File.ReadAllText(filePath);
 			var groups = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<ActivityGroup>>(jsonText, _options);
 			if (groups is null)
 			{
-				return false;
+				File.WriteAllText(filePath, "[]");
+				return ServiceResponse<bool>.Fail("Was unable to read the groups from the file");
 			}
 			foreach (var group in groups)
 			{
@@ -53,12 +51,12 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 			}
 			GetActivities();
 			UpdateOtherGroup();
-			return true;
+			return ServiceResponse<bool>.Success(true);
 		}
 		catch (Exception ex)
 		{
 			_appLogger.LogError(ex.Message);
-			return false;
+			return ServiceResponse<bool>.Fail(ex.Message);
 		}
 	}
 
@@ -143,14 +141,27 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 
 	private void UpdateOtherGroup()
 	{
+
 		var totalDuration = TimeSpan.FromTicks(_remainingActivities.Sum(a => a.Duration.Ticks));
 
 		var otherGroup = _activityGroups.OfType<ActivityGroup>().FirstOrDefault(g => g.Name == "Other");
 
-		if (otherGroup == null && totalDuration > TimeSpan.Zero)
+		if (otherGroup == null && totalDuration > TimeSpan.Zero && _activityGroups.Count != 0)
 		{
-			otherGroup = new ActivityGroup { Name = "Other" };
-			otherGroup.TotalDuration = totalDuration;
+			otherGroup = new ActivityGroup
+			{
+				Name = "Other",
+				TotalDuration = totalDuration
+			};
+			_activityGroups.Add(otherGroup);
+		}
+		else if(otherGroup == null && _activityGroups.Count == 0)
+		{
+			otherGroup = new ActivityGroup
+			{
+				Name = "Other",
+				TotalDuration = totalDuration
+			};
 			_activityGroups.Add(otherGroup);
 		}
 		else if (otherGroup is not null)
@@ -163,7 +174,7 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 			return;
 		}
 	}
-	private List<Activity> _remainingActivities;
+	private List<Activity> _remainingActivities=[];
 	public void RegroupActivities()
 	{
 		if (!GetActivities())

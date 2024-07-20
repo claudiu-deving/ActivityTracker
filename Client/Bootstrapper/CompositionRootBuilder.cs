@@ -2,6 +2,7 @@
 using Client.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
+using System.Windows;
 
 namespace Client.Bootstrapper;
 
@@ -26,20 +27,11 @@ internal class CompositionRootBuilder
 		// Register views
 		_serviceCollection.AddSingleton<MainWindow>();
 		var serviceProvider = _serviceCollection.BuildServiceProvider();
-
-		foreach (var serviceType in InitializableServices())
+		var viewModelInitialization =  await serviceProvider.GetService<MainViewModel>()!.Initialize();
+		if(viewModelInitialization != null)
 		{
-			if (serviceProvider.GetService(serviceType as Type) is IInitializable initializable)
-			{
-				await initializable.Initialize();
-			}
+			MessageBox.Show(viewModelInitialization.Message);
 		}
 		return serviceProvider;
-	}
-
-	private  static IEnumerable InitializableServices()
-	{
-		yield return typeof(IActivityGroupService);
-		yield return typeof(MainViewModel);
 	}
 }

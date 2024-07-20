@@ -1,4 +1,5 @@
-﻿using Client.Models;
+﻿using BiTLuZ.InfraLib;
+using Client.Models;
 using Client.Services;
 using Moq;
 using Xunit;
@@ -6,24 +7,33 @@ using Assert = Xunit.Assert;
 
 namespace Client.ViewModels.Tests;
 
+public class TestPathsProvider : IAppPathsProvider,IPathsProvider
+{
+	public string GetAppFolder()
+	{
+		return "TestData";
+	}
+
+	public string GetGroupsJsonPath()
+	{
+		return @"TestData\groups.json";
+	}
+}
+
 public class MainViewModelTests
 {
-	private readonly Mock<IActivityGroupService> _mockedActivityGroupsService;
-	private readonly Mock<IInitializable> _mockedActivityGroupsServiceIni;
-	private readonly Mock<IActivityService> _mochedActivityService;
 	private readonly MainViewModel _sut;
 
 	public MainViewModelTests()
 	{
-		 _mockedActivityGroupsService = new Mock<IActivityGroupService>();
-		_mockedActivityGroupsServiceIni = _mockedActivityGroupsService.As<IInitializable>();
-		_mochedActivityService = new Mock<IActivityService>();
-
-
-		_sut = new MainViewModel(_mockedActivityGroupsService.Object, _mochedActivityService.Object);
+		var pathsProvider = new TestPathsProvider();
+		var appLogger = new AppLogger(pathsProvider);
+		var activityService = new ActivityService(pathsProvider);
+		var activityGroupService = new ActivityGroupService(pathsProvider, appLogger, activityService);
+		_sut = new MainViewModel(activityGroupService,activityService);
 	}
 
-	[Fact(DisplayName = "Activities, groups and colors are populate after constructing")]
+	[Fact(DisplayName = "Constructor")]
 	public void MainViewModelTest()
 	{
 		// Arrange
@@ -34,25 +44,18 @@ public class MainViewModelTests
 		Assert.NotNull(_sut.AvailableColors);
 	}
 
-	[Fact(DisplayName = "Initialize method calls the Initialize method of the ActivityGroupService")]
+	[Fact(DisplayName = "Initialized correctly")]
 	public async Task InitializeTest()
 	{
 		// Arrange
-		var activityGroups = new List<ActivityGroup>()
-		{
-			new()
-			{
-				Name ="New Group"
-			}
-		};
-		_mockedActivityGroupsService.Setup(x => x.GetActivityGroups()).Returns(ServiceResponse<IEnumerable<ActivityGroup>>.Success(activityGroups));
-
-		_mockedActivityGroupsServiceIni.Setup(x => x.Initialize()).ReturnsAsync(true);
-		_mochedActivityService.Setup(x => x.GetActivities()).Returns(ServiceResponse<List<Activity>>.Success(new List<Activity>()));
 		// Act
-		await _sut.Initialize();
+		var result = await _sut.Initialize();
 		// Assert
-		_mockedActivityGroupsServiceIni.Verify(x =>x.Initialize(), Times.Once);
+		Assert.True(result.IsSuccess,result.Message);
+		Assert.NotNull(_sut.Activities);
+		Assert.NotNull(_sut.ActivityGroups);
+		Assert.True(_sut.ActivityGroups.Count > 0,"The activity groups must contain at least the Ungrouped group");
+
 	}
 
 
@@ -60,15 +63,8 @@ public class MainViewModelTests
 	public async Task AddActivityCommandTest()
 	{
 		await _sut.Initialize();
+
 		// Arrange
-		var activityGroups = new List<ActivityGroup>()
-		{
-			new()
-			{
-				Name ="New Group"
-			}
-		};
-		_mockedActivityGroupsService.Setup(x => x.GetActivityGroups()).Returns( ServiceResponse<IEnumerable<ActivityGroup>>.Success(activityGroups));
 		// Act
 		_sut.AddGroupCommand.Execute(null);
 		// Assert
@@ -78,9 +74,11 @@ public class MainViewModelTests
 	}
 
 	[Fact(DisplayName = "AddPatternCommand adds a new pattern if the condition is met")]
-	public void AddPatternCommandTest()
+	public async Task AddPatternCommandTest()
 	{
+
 		// Arrange
+		await _sut.Initialize();
 		_sut.SelectedGroup = _sut.ActivityGroups[0];
 		_sut.NewPatternInput = "New Pattern";
 		// Act
@@ -92,21 +90,23 @@ public class MainViewModelTests
 	}
 
 	[Fact(DisplayName = "AddPatternCommand doesn't add a new pattern if the input is empty")]
-	public void AddPatternCommandTest2()
+	public async Task AddPatternCommandTest2()
 	{
 		// Arrange
+		await _sut.Initialize();
 		_sut.SelectedGroup = _sut.ActivityGroups[0];
 		_sut.NewPatternInput = "";
 		// Act
 		_sut.AddPatternCommand.Execute(null);
 		// Assert
-		Assert.Empty(_sut.SelectedGroup.Patterns);
+		Assert.Empty(_sut.SelectedGroup.Patterns.Where(x=>string.IsNullOrEmpty(x.Sentence)));
 	}
 
 	[Fact(DisplayName = "AddPatternCommand doesn't add a new pattern if the selected group is null")]
-	public void AddPatternCommandTest3()
+	public async Task AddPatternCommandTest3()
 	{
 		// Arrange
+		await _sut.Initialize();
 		_sut.SelectedGroup = null;
 		_sut.NewPatternInput = "New Pattern";
 		// Act
@@ -116,9 +116,10 @@ public class MainViewModelTests
 	}
 
 	[Fact(DisplayName = "RemovePatternCommand removes the pattern from the selected group")]
-	public void RemovePatternCommandTest()
+	public async Task RemovePatternCommandTest()
 	{
 		// Arrange
+		await _sut.Initialize();
 		string patternName = "New Pattern";
 		_sut.SelectedGroup = _sut.ActivityGroups[0];
 		_sut.NewPatternInput = patternName;
