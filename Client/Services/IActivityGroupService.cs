@@ -10,5 +10,6 @@ public interface IActivityGroupService
 	List<Activity> GetRemainingActivities();
 	void RegroupActivities();
 	ServiceResponse<ActivityGroup> RemoveGroup(int groupId);
+	ServiceResponse<ActivityGroup> RemovePattern(int groupId, string pattern);
 	ServiceResponse<bool> Save();
 }

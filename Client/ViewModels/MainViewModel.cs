@@ -33,7 +33,8 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	private ColorItem _colorItem;
 
-	private string _currentActivityFile=string.Empty;
+	private string _currentActivityFile = string.Empty;
+
 	public string CurrentActivityFile
 	{
 		get => _currentActivityFile;
@@ -58,7 +59,8 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	[ObservableProperty]
 	private ActivityGroup _selectedGroup;
-	public MainViewModel(IActivityGroupService activityGroupService,IActivityService activityService)
+
+	public MainViewModel(IActivityGroupService activityGroupService, IActivityService activityService)
 	{
 		_activityGroupService = activityGroupService;
 		_activityService = activityService;
@@ -77,12 +79,15 @@ public partial class MainViewModel : ObservableObject, IInitializable
 				 })
 				 .ToList();
 		AvailableColors = new(colors);
-
+		AddPatternCommand = new LocalRelayCommand(AddPattern,CanAddPattern);
 	}
 
 	[ObservableProperty]
 	private ObservableCollection<string> _activityFiles;
+
 	public ObservableCollection<ColorItem> AvailableColors { get; }
+	public LocalRelayCommand AddPatternCommand { get; }
+
 	public ColorItem ColorItem
 	{
 		get => _colorItem;
@@ -96,6 +101,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	}
 
 	public ObservableCollection<ISeries> Series { get; set; } = [];
+
 	public LabelVisual Title { get; set; } =
 	new LabelVisual
 	{
@@ -107,14 +113,15 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	public async Task<ServiceResponse<bool>> Initialize()
 	{
-		return await Task.Run(async () => {
+		return await Task.Run(async () =>
+		{
 			var serviceInitializationResponse = await ((IInitializable)_activityGroupService).Initialize();
 			if (!serviceInitializationResponse.IsSuccess)
 			{
 				return ServiceResponse<bool>.Fail(serviceInitializationResponse.Message);
 			}
 			_activityGroupService.RegroupActivities();
-			 var getActivitiesResponse =_activityService.GetActivities();
+			var getActivitiesResponse = _activityService.GetActivities();
 			if (!getActivitiesResponse.IsSuccess || getActivitiesResponse.Data is null)
 			{
 				return ServiceResponse<bool>.Fail(getActivitiesResponse.Message);
@@ -130,7 +137,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private void InitializeActivityFiles()
 	{
 		var filesRetrievalResponse = _activityService.GetActivityFiles();
-		if(!filesRetrievalResponse.IsSuccess || filesRetrievalResponse.Data is null)
+		if (!filesRetrievalResponse.IsSuccess || filesRetrievalResponse.Data is null)
 		{
 			MessageBox.Show(filesRetrievalResponse.Message);
 		}
@@ -148,19 +155,18 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		var newGroup = new ActivityGroup { Name = "New Group" };
 		_activityGroupService.AddGroup(newGroup);
 		SelectedGroup = newGroup;
-		UpdateActivityGroups();
+		Refresh();
 	}
 
-	[RelayCommand]
 	private void AddPattern()
 	{
-		if (SelectedGroup != null && !string.IsNullOrWhiteSpace(NewPatternInput))
-		{
-			SelectedGroup.Patterns.Add(new Pattern(NewPatternInput));
-			NewPatternInput = string.Empty;
-			_activityGroupService.RegroupActivities();
-		}
+		SelectedGroup.Patterns.Add(new Pattern(NewPatternInput));
+		NewPatternInput = string.Empty;
+		Refresh();
 	}
+
+	private bool CanAddPattern() => SelectedGroup != null && !string.IsNullOrWhiteSpace(NewPatternInput);
+
 	private void RedrawGraph()
 	{
 		Series.Clear();
@@ -181,7 +187,6 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		}
 	}
 
-
 	[RelayCommand]
 	private void RemoveGroup()
 	{
@@ -192,9 +197,15 @@ public partial class MainViewModel : ObservableObject, IInitializable
 				//TODO: Present error message
 			}
 			SelectedGroup = null;
-			_activityGroupService.RegroupActivities();
-			UpdateActivityGroups();
+			Refresh();
 		}
+	}
+
+	private void Refresh()
+	{
+		_activityGroupService.RegroupActivities();
+		UpdateActivityGroups();
+		RedrawGraph();
 	}
 
 	[RelayCommand]
@@ -205,9 +216,9 @@ public partial class MainViewModel : ObservableObject, IInitializable
 			var patternToRemove = SelectedGroup.Patterns.FirstOrDefault(x => x.Sentence.Equals(pattern));
 			if (patternToRemove != null)
 			{
-				SelectedGroup.Patterns.Remove(patternToRemove);
+				_activityGroupService.RemovePattern(SelectedGroup.Id,patternToRemove.Sentence);
 			}
-			_activityGroupService.RegroupActivities();
+			Refresh();
 		}
 	}
 
@@ -218,7 +229,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		{
 			SelectedGroup.Name = NewPatternInput;
 			NewPatternInput = string.Empty;
-			_activityGroupService.RegroupActivities();
+			Refresh();
 		}
 	}
 
@@ -234,7 +245,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private bool UpdateActivityGroups()
 	{
 		var response = _activityGroupService.GetActivityGroups();
-		RemainingActivities = new ( _activityGroupService.GetRemainingActivities());
+		RemainingActivities = new(_activityGroupService.GetRemainingActivities());
 		if (response.IsSuccess && response.Data is not null)
 		{
 			ActivityGroups = new(response.Data);
@@ -246,5 +257,4 @@ public partial class MainViewModel : ObservableObject, IInitializable
 			return false;
 		}
 	}
-
 }

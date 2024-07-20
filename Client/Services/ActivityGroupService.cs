@@ -49,6 +49,7 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 			{
 				_activityGroups.Add(group);
 			}
+			_indexCounter = _activityGroups.Count;
 			GetActivities();
 			UpdateOtherGroup();
 			return ServiceResponse<bool>.Success(true);
@@ -62,6 +63,7 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 
 	public void AddGroup(ActivityGroup activityGroup)
 	{
+		activityGroup.Id = _indexCounter++;
 		_activityGroups.Add(activityGroup);
 		UpdateOtherGroup();
 	}
@@ -87,6 +89,36 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 	public ServiceResponse<IEnumerable<ActivityGroup>> GetActivityGroups()
 	{
 		return ServiceResponse<IEnumerable<ActivityGroup>>.Success(_activityGroups);
+	}
+
+	public ServiceResponse<ActivityGroup> RemovePattern(int groupId,string pattern)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(pattern))
+			{
+				return ServiceResponse<ActivityGroup>.Fail($"Pattern name cannot be empty");
+			}
+			var group = _activityGroups.FirstOrDefault(g => g.Id == groupId);
+			if (group is null)
+			{
+				return ServiceResponse<ActivityGroup>.Fail($"Activity group with {groupId} id was not found");
+			}
+			var existingPattern = group.Patterns.FirstOrDefault(x => x.Sentence.Equals(pattern));
+			if (existingPattern is null)
+			{
+				return ServiceResponse<ActivityGroup>.Fail($"Pattern {pattern} in group with {groupId} id was not found");
+			}
+			_remainingActivities.AddRange(existingPattern.Activities);
+			group.Patterns.Remove(existingPattern);
+			UpdateOtherGroup();
+			return ServiceResponse<ActivityGroup>.Success(group);
+		}
+		catch (Exception ex)
+		{
+			_appLogger.LogError(ex.Message);
+			return ServiceResponse<ActivityGroup>.Fail(ex.Message);
+		}
 	}
 
 	public ServiceResponse<ActivityGroup> AddPattern(int groupId, string pattern)
@@ -122,6 +154,7 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 			{
 				return ServiceResponse<ActivityGroup>.Fail($"Activity group with {groupId} id was not found");
 			}
+			_remainingActivities.AddRange(group.Activities);
 			if (_activityGroups.Remove(group))
 			{
 				UpdateOtherGroup();
@@ -175,6 +208,8 @@ public class ActivityGroupService : IInitializable, IActivityGroupService
 		}
 	}
 	private List<Activity> _remainingActivities=[];
+	private int _indexCounter;
+
 	public void RegroupActivities()
 	{
 		if (!GetActivities())

@@ -2,7 +2,7 @@
 
 namespace Client.ViewModels;
 
-public class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
+public class LocalRelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {
     private readonly Action _execute = execute ?? throw new ArgumentNullException(nameof(execute));
 
@@ -18,12 +18,12 @@ public class RelayCommand(Action execute, Func<bool>? canExecute = null) : IComm
 
 }
 
-public class RelayCommand<T> : ICommand
+public class LocalRelayCommand<T> : ICommand
 {
     private readonly Action<T> _execute;
     private readonly Func<T, bool>? _canExecute;
 
-    public RelayCommand(Action<T> execute, Func<T, bool>? canExecute = null)
+    public LocalRelayCommand(Action<T> execute, Func<T, bool>? canExecute = null)
     {
         _execute = execute ?? throw new ArgumentNullException(nameof(execute));
         _canExecute = canExecute;
