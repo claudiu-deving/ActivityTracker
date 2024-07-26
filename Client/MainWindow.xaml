@@ -110,7 +110,7 @@
                 <ListView
                     Grid.Row="1"
                     Background="{StaticResource Background}"
-                    ItemsSource="{Binding ActivityGroups}"
+                    ItemsSource="{Binding GroupDefinitions}"
                     SelectedItem="{Binding SelectedGroup}"
                     VirtualizingPanel.ScrollUnit="Pixel">
                     <ListView.ContextMenu>

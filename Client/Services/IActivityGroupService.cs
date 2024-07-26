@@ -2,14 +2,23 @@
 
 namespace Client.Services;
 
-public interface IActivityGroupService
+public interface IGroupDefinitionService
 {
-	void AddGroup(ActivityGroup activityGroup); 
-	ServiceResponse<ActivityGroup> AddPattern(int groupId, string pattern);
-	ServiceResponse<IEnumerable<ActivityGroup>> GetActivityGroups();
+	void AddGroup(GroupDefinition GroupDefinition);
+
+	ServiceResponse<GroupDefinition> AddPattern(int groupId, string pattern);
+
+	ServiceResponse<IEnumerable<GroupDefinition>> GetGroupDefinitions();
+
 	List<Activity> GetRemainingActivities();
+
 	void RegroupActivities();
-	ServiceResponse<ActivityGroup> RemoveGroup(int groupId);
-	ServiceResponse<ActivityGroup> RemovePattern(int groupId, string pattern);
+
+	ServiceResponse<GroupDefinition> RemoveGroup(int groupId);
+
+	ServiceResponse<GroupDefinition> RemovePattern(int groupId, string pattern);
+
 	ServiceResponse<bool> Save();
+
+	ServiceResponse<bool> UpdateGroupDefinitions(IEnumerable<GroupDefinition> GroupDefinitions);
 }

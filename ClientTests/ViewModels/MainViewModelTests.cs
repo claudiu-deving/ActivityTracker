@@ -27,8 +27,8 @@ public class MainViewModelTests
 		var pathsProvider = new TestPathsProvider();
 		var appLogger = new AppLogger(pathsProvider);
 		var activityService = new ActivityService(pathsProvider);
-		var activityGroupService = new ActivityGroupService(pathsProvider, appLogger, activityService);
-		_sut = new MainViewModel(activityGroupService, activityService);
+		var GroupDefinitionService = new GroupDefinitionService(pathsProvider, appLogger, activityService);
+		_sut = new MainViewModel(GroupDefinitionService, activityService);
 	}
 
 	[Fact(DisplayName = "Constructor")]
@@ -38,7 +38,7 @@ public class MainViewModelTests
 		// Act
 		// Assert
 		Assert.NotNull(_sut.Activities);
-		Assert.NotNull(_sut.ActivityGroups);
+		Assert.NotNull(_sut.GroupDefinitions);
 		Assert.NotNull(_sut.AvailableColors);
 	}
 
@@ -51,13 +51,13 @@ public class MainViewModelTests
 		// Assert
 		Assert.True(result.IsSuccess, result.Message);
 		Assert.NotNull(_sut.Activities);
-		Assert.NotNull(_sut.ActivityGroups);
-		Assert.True(_sut.ActivityGroups.Count > 0, "The activity groups must contain at least the Ungrouped group");
+		Assert.NotNull(_sut.GroupDefinitions);
+		Assert.True(_sut.GroupDefinitions.Count > 0, "The activity groups must contain at least the Ungrouped group");
 
 	}
 
 
-	[Fact(DisplayName = "AddGroupCommand adds new activity group to ActivityGroups")]
+	[Fact(DisplayName = "AddGroupCommand adds new activity group to GroupDefinitions")]
 	public async Task AddActivityCommandTest()
 	{
 		await _sut.Initialize();
@@ -66,9 +66,9 @@ public class MainViewModelTests
 		// Act
 		_sut.AddGroupCommand.Execute(null);
 		// Assert
-		Assert.True(_sut.ActivityGroups.Count > 1);
-		Assert.Empty(_sut.ActivityGroups[^1].Activities);
-		Assert.Equal("New Group", _sut.ActivityGroups[^1].Name);
+		Assert.True(_sut.GroupDefinitions.Count > 1);
+		Assert.Empty(_sut.GroupDefinitions[^1].Activities);
+		Assert.Equal("New Group", _sut.GroupDefinitions[^1].Name);
 		Assert.True(_sut.ActivityFiles.Count > 0,"There must be at least one activity file present");
 	}
 
@@ -78,7 +78,7 @@ public class MainViewModelTests
 
 		// Arrange
 		await _sut.Initialize();
-		_sut.SelectedGroup = _sut.ActivityGroups[0];
+		_sut.SelectedGroup = _sut.GroupDefinitions[0];
 		_sut.NewPatternInput = "New Pattern";
 		// Act
 		_sut.AddPatternCommand.Execute(null);
@@ -93,7 +93,7 @@ public class MainViewModelTests
 	{
 		// Arrange
 		await _sut.Initialize();
-		_sut.SelectedGroup = _sut.ActivityGroups[0];
+		_sut.SelectedGroup = _sut.GroupDefinitions[0];
 		_sut.NewPatternInput = "";
 		// Act
 		_sut.AddPatternCommand.Execute(null);
@@ -111,7 +111,7 @@ public class MainViewModelTests
 		// Act
 		_sut.AddPatternCommand.Execute(null);
 		// Assert
-		Assert.Empty(_sut.ActivityGroups[0].Patterns);
+		Assert.Empty(_sut.GroupDefinitions[0].Patterns);
 	}
 
 	[Fact(DisplayName = "RemovePatternCommand removes the pattern from the selected group")]
@@ -120,7 +120,7 @@ public class MainViewModelTests
 		// Arrange
 		await _sut.Initialize();
 		string patternName = "New Pattern";
-		_sut.SelectedGroup = _sut.ActivityGroups[0];
+		_sut.SelectedGroup = _sut.GroupDefinitions[0];
 		_sut.NewPatternInput = patternName;
 		_sut.AddPatternCommand.Execute(null);
 		Assert.True(_sut.SelectedGroup.Patterns.Count > 0);

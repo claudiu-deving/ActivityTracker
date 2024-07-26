@@ -1,107 +1,34 @@
 ﻿using Client.Models;
 using System.IO;
-using System.Text.Json;
 
 namespace Client.Services;
 
-public class ActivityService(IAppPathsProvider appPathsProvider) : IActivityService
+public class ActivityService : IActivityService
 {
-	private readonly List<Activity> _activities = [];
-	private readonly List<string> _files = [];
-	private string _currentFile = string.Empty;
+	private readonly IAppPathsProvider _appPathsProvider;
+	private readonly ISessionService _sessionService;
+	private Session? _chosenSession;
+	private readonly List<Session> _sessions;
 
-	private ServiceResponse<List<Activity>> LoadActivities()
+	public ActivityService(IAppPathsProvider appPathsProvider, ISessionService sessionService)
+	{
+		_appPathsProvider = appPathsProvider;
+		_sessionService = sessionService;
+		_sessions = _sessionService.GetSessions();
+		_chosenSession = _sessions.FirstOrDefault() ?? Session.Empty;
+	}
+
+	public ServiceResponse<List<Activity>> GetActivitiesForCurrent(string file)
 	{
 		try
 		{
-			var directory = appPathsProvider.GetAppFolder();
-			if (!Directory.Exists(directory))
-			{
-				Directory.CreateDirectory(directory);
-			}
-			var filteredJsonFiles = Directory.GetFiles(directory, "window_times_filtered_*.json");
-			foreach (var file in filteredJsonFiles)
-			{
-				_files.Add(file);
-			}
+			_chosenSession = _sessions.Find(x => x.File.Equals(Path.Combine(_appPathsProvider.GetAppFolder(), file))) ?? Session.Empty;
 
-			var currentActivityFile = _files.FirstOrDefault();
-
-			_currentFile = currentActivityFile ?? Path.Combine(directory, $"window_times_filtered_{DateTime.Now:dd.MM.yy}.json");
-
-			return ReadCurrentActivityFile(_currentFile);
+			return ServiceResponse<List<Activity>>.Success(_chosenSession?.Activities ?? []);
 		}
 		catch (Exception ex)
 		{
 			return ServiceResponse<List<Activity>>.Fail(ex.Message);
-		}
-	}
-
-	private ServiceResponse<List<Activity>> ReadCurrentActivityFile(string file)
-	{
-		try
-		{
-			_activities.Clear();
-			if (!File.Exists(file))
-			{
-				File.WriteAllText(file, JsonSerializer.Serialize(new Dictionary<string, TimeSpan>()));
-			}
-			var jsonText = File.ReadAllText(file);
-
-			var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, TimeSpan>>(jsonText);
-
-			if (dictionary is null)
-			{
-				return ServiceResponse<List<Activity>>.Fail($"No activities found in the file {file}");
-			}
-
-			foreach (var kvp in dictionary)
-			{
-				_activities.Add(new Activity { Name = kvp.Key, Duration = kvp.Value });
-			}
-			return ServiceResponse<List<Activity>>.Success(_activities);
-		}
-		catch (Exception ex)
-		{
-			return ServiceResponse<List<Activity>>.Fail(ex.Message);
-		}
-	}
-
-	public ServiceResponse<List<Activity>> GetActivities()
-	{
-		try
-		{
-			if (_activities.Count > 0)
-			{
-				return ServiceResponse<List<Activity>>.Success(_activities);
-			}
-			else
-			{
-				return LoadActivities();
-			}
-		}
-		catch (Exception ex)
-		{
-			return ServiceResponse<List<Activity>>.Fail(ex.Message);
-		}
-	}
-
-	public void SetCurrentActivityFile(string file)
-	{
-		_currentFile = Path.Combine(appPathsProvider.GetAppFolder(), file);
-
-		ReadCurrentActivityFile(_currentFile);
-	}
-
-	public ServiceResponse<List<string>> GetActivityFiles()
-	{
-		try
-		{
-		return	ServiceResponse<List<string>>.Success(_files.Select(x => Path.GetFileName(x)).ToList());
-		}
-		catch (Exception ex)
-		{
-			return ServiceResponse<List<string>>.Fail(ex.Message);
 		}
 	}
 }

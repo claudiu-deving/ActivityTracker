@@ -21,7 +21,7 @@ namespace Client.ViewModels;
 
 public partial class MainViewModel : ObservableObject, IInitializable
 {
-	private readonly IActivityGroupService _activityGroupService;
+	private readonly IGroupDefinitionService _GroupDefinitionService;
 	private readonly IActivityService _activityService;
 	private readonly Dictionary<Color, SKColor> _colorsMapping = [];
 
@@ -29,24 +29,24 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private ObservableCollection<Activity> _activities;
 
 	[ObservableProperty]
-	private ObservableCollection<ActivityGroup> _activityGroups;
+	private ObservableCollection<GroupDefinition> _GroupDefinitions;
 
 	private ColorItem _colorItem;
 
-	private string _currentActivityFile = string.Empty;
+	private string _currentActivity = string.Empty;
 
-	public string CurrentActivityFile
+	public string CurrentActivity
 	{
-		get => _currentActivityFile;
+		get => _currentActivity;
 		set
 		{
-			if (!_currentActivityFile.Equals(value))
+			if (!_currentActivity.Equals(value))
 			{
-				_currentActivityFile = value;
+				_currentActivity = value;
 				OnPropertyChanged();
-				_activityService.SetCurrentActivityFile(value);
-				_activityGroupService.RegroupActivities();
-				UpdateActivityGroups();
+				_activityService.SetCurrentActivity(value);
+				_GroupDefinitionService.RegroupActivities();
+				UpdateGroupDefinitions();
 			}
 		}
 	}
@@ -58,16 +58,16 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private ObservableCollection<Activity> _remainingActivities;
 
 	[ObservableProperty]
-	private ActivityGroup _selectedGroup;
+	private GroupDefinition _selectedGroup;
 
-	public MainViewModel(IActivityGroupService activityGroupService, IActivityService activityService)
+	public MainViewModel(IGroupDefinitionService GroupDefinitionService, IActivityService activityService)
 	{
-		_activityGroupService = activityGroupService;
+		_GroupDefinitionService = GroupDefinitionService;
 		_activityService = activityService;
 		Activities = [];
 		_remainingActivities = [];
-		ActivityGroups = [];
-		ActivityGroups.CollectionChanged += ActivityGroups_CollectionChanged;
+		GroupDefinitions = [];
+		GroupDefinitions.CollectionChanged += GroupDefinitions_CollectionChanged;
 		var colors = typeof(SKColors)
 				 .GetFields(BindingFlags.Static | BindingFlags.Public)
 				 .Select(fld =>
@@ -79,7 +79,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 				 })
 				 .ToList();
 		AvailableColors = new(colors);
-		AddPatternCommand = new LocalRelayCommand(AddPattern,CanAddPattern);
+		AddPatternCommand = new LocalRelayCommand(AddPattern, CanAddPattern);
 	}
 
 	[ObservableProperty]
@@ -115,19 +115,19 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		return await Task.Run(async () =>
 		{
-			var serviceInitializationResponse = await ((IInitializable)_activityGroupService).Initialize();
+			var serviceInitializationResponse = await ((IInitializable)_GroupDefinitionService).Initialize();
 			if (!serviceInitializationResponse.IsSuccess)
 			{
 				return ServiceResponse<bool>.Fail(serviceInitializationResponse.Message);
 			}
-			_activityGroupService.RegroupActivities();
+			_GroupDefinitionService.RegroupActivities();
 			var getActivitiesResponse = _activityService.GetActivities();
 			if (!getActivitiesResponse.IsSuccess || getActivitiesResponse.Data is null)
 			{
 				return ServiceResponse<bool>.Fail(getActivitiesResponse.Message);
 			}
 			Activities = new(getActivitiesResponse.Data);
-			UpdateActivityGroups();
+			UpdateGroupDefinitions();
 			InitializeActivityFiles();
 			RedrawGraph();
 			return ServiceResponse<bool>.Success(true);
@@ -136,7 +136,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	private void InitializeActivityFiles()
 	{
-		var filesRetrievalResponse = _activityService.GetActivityFiles();
+		var filesRetrievalResponse = _activityService.GetActivityNames();
 		if (!filesRetrievalResponse.IsSuccess || filesRetrievalResponse.Data is null)
 		{
 			MessageBox.Show(filesRetrievalResponse.Message);
@@ -144,7 +144,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		ActivityFiles = new(filesRetrievalResponse.Data!);
 	}
 
-	private void ActivityGroups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+	private void GroupDefinitions_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
 	{
 		RedrawGraph();
 	}
@@ -152,8 +152,8 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	[RelayCommand]
 	private void AddGroup()
 	{
-		var newGroup = new ActivityGroup { Name = "New Group" };
-		_activityGroupService.AddGroup(newGroup);
+		var newGroup = new GroupDefinition { Name = "New Group" };
+		_GroupDefinitionService.AddGroup(newGroup);
 		SelectedGroup = newGroup;
 		Refresh();
 	}
@@ -170,7 +170,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private void RedrawGraph()
 	{
 		Series.Clear();
-		foreach (var group in ActivityGroups)
+		foreach (var group in GroupDefinitions)
 		{
 			if (group.TotalDuration == TimeSpan.Zero) continue;
 			var series = new PieSeries<double>()
@@ -192,7 +192,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		if (SelectedGroup != null)
 		{
-			if (!_activityGroupService.RemoveGroup(SelectedGroup.Id).IsSuccess)
+			if (!_GroupDefinitionService.RemoveGroup(SelectedGroup.Id).IsSuccess)
 			{
 				//TODO: Present error message
 			}
@@ -203,8 +203,8 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	private void Refresh()
 	{
-		_activityGroupService.RegroupActivities();
-		UpdateActivityGroups();
+		_GroupDefinitionService.RegroupActivities();
+		UpdateGroupDefinitions();
 		RedrawGraph();
 	}
 
@@ -216,7 +216,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 			var patternToRemove = SelectedGroup.Patterns.FirstOrDefault(x => x.Sentence.Equals(pattern));
 			if (patternToRemove != null)
 			{
-				_activityGroupService.RemovePattern(SelectedGroup.Id,patternToRemove.Sentence);
+				_GroupDefinitionService.RemovePattern(SelectedGroup.Id, patternToRemove.Sentence);
 			}
 			Refresh();
 		}
@@ -227,8 +227,11 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		if (SelectedGroup != null)
 		{
-			SelectedGroup.Name = NewPatternInput;
-			NewPatternInput = string.Empty;
+			var patternToRemove = GroupDefinitions.FirstOrDefault(x => x.Id.Equals(SelectedGroup.Id));
+			if (patternToRemove != null)
+			{
+				patternToRemove.Name = NewPatternInput;
+			}
 			Refresh();
 		}
 	}
@@ -236,19 +239,19 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	[RelayCommand]
 	private void SaveGroupsToFile()
 	{
-		if (!_activityGroupService.Save().IsSuccess)
+		if (!_GroupDefinitionService.Save().IsSuccess)
 		{
 			//TODO: Present error message
 		}
 	}
 
-	private bool UpdateActivityGroups()
+	private bool UpdateGroupDefinitions()
 	{
-		var response = _activityGroupService.GetActivityGroups();
-		RemainingActivities = new(_activityGroupService.GetRemainingActivities());
+		var response = _GroupDefinitionService.GetGroupDefinitions();
+		RemainingActivities = new(_GroupDefinitionService.GetRemainingActivities());
 		if (response.IsSuccess && response.Data is not null)
 		{
-			ActivityGroups = new(response.Data);
+			GroupDefinitions = new(response.Data);
 			return true;
 		}
 		else
