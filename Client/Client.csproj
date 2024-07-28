@@ -26,6 +26,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\Libraries\Bitluz.InfraLib\BiTLuZ.InfraLib\BiTLuZ.InfraLib.csproj" />
 	  <ProjectReference Include="..\LLMLibrary\LLMLibrary.csproj" />
+	  <ProjectReference Include="..\Shared\Shared.csproj" />
 	</ItemGroup>
 
 </Project>

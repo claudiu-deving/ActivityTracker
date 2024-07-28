@@ -22,6 +22,8 @@ internal class CompositionRootBuilder
 		_serviceCollection.AddSingleton<IAppLogger, AppLogger>();
 		_serviceCollection.AddSingleton<IActivityService, ActivityService>();	
 		_serviceCollection.AddSingleton<IGroupDefinitionService, GroupDefinitionService>();
+		_serviceCollection.AddSingleton<ISessionService, SessionService>();
+		_serviceCollection.AddSingleton< ActivityRepository>();
 		// Register view models
 		_serviceCollection.AddSingleton<MainViewModel>();
 		// Register views

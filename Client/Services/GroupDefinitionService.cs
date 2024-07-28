@@ -8,14 +8,13 @@ namespace Client.Services;
 
 public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 {
-	private List<ParentGroupDefinition> _groupDefinitions;
+	public ObservableCollection<GroupDefinition> GroupDefinitions { get; set; } = [];
 	private readonly IPathsProvider _pathsProvider;
 	private readonly IAppLogger _appLogger;
 	private readonly IActivityService _activityService;
 
 	public GroupDefinitionService(IPathsProvider pathsProvider, IAppLogger appLogger, IActivityService activityService)
 	{
-		_groupDefinitions = [];
 		_pathsProvider = pathsProvider;
 		_appLogger = appLogger;
 		_activityService = activityService;
@@ -28,14 +27,9 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 	public async Task<ServiceResponse<bool>> Initialize()
 	{
 		var fileReadResponse = await Task.Run(ReadFromFile);
-		var ungroupedUpdated = UpdateUngrouped();
 		if (!fileReadResponse.IsSuccess)
 		{
 			return fileReadResponse;
-		}
-		if (!ungroupedUpdated)
-		{
-			return ServiceResponse<bool>.Fail("Unable to update the ungrouped group");
 		}
 		return ServiceResponse<bool>.Success();
 	}
@@ -54,7 +48,7 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 				File.WriteAllText(filePath, "[]");
 			}
 			var jsonText = File.ReadAllText(filePath);
-			var groups = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<ParentGroupDefinition>>(jsonText, _options);
+			var groups = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<GroupDefinition>>(jsonText, _options);
 			if (groups is null)
 			{
 				File.WriteAllText(filePath, "[]");
@@ -62,9 +56,9 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 			}
 			foreach (var group in groups)
 			{
-				_groupDefinitions.Add(group);
+				GroupDefinitions.Add(group);
 			}
-			_indexCounter = _groupDefinitions.Count;
+			_indexCounter = GroupDefinitions.Count;
 
 			return ServiceResponse<bool>.Success(true);
 		}
@@ -75,27 +69,26 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 		}
 	}
 
-	public void AddParentGroup(ParentGroupDefinition parentGroupDefinition)
+	public void AddGroup(GroupDefinition parentGroupDefinition)
 	{
 		parentGroupDefinition.Id = _indexCounter++;
-		_groupDefinitions.Add(parentGroupDefinition);
-		UpdateUngrouped();
+		GroupDefinitions.Add(parentGroupDefinition);
 	}
-	public void AddParentGroup(ParentGroupDefinition parentGroupDefinition, int grandParentId)
+	public void AddSubGroup(GroupDefinition groupDefinition,int parentGroupDefinitionId)
 	{
-		parentGroupDefinition.Id = _indexCounter++;
-		FindByRecursive(_groupDefinitions,grandParentId);
-		UpdateUngrouped();
+		groupDefinition.Id = _indexCounter++;
+		var parentgroupDefinition = FindByRecursive(GroupDefinitions, parentGroupDefinitionId);
+		parentgroupDefinition.GroupDefinitions.Add(groupDefinition);
 	}
-
-	private GroupDefinitionBase FindByRecursive(List<GroupDefinitionBase> groupDefinitions, int grandParentId)
+	private GroupDefinition FindByRecursive(IEnumerable<GroupDefinition> groupDefinitions, int parentGroupDefinitionId)
 	{
-		if (groupDefinitions.Find(x => x.Id == grandParentId) is not ParentGroupDefinition foundGroupDefinition)
+		if (groupDefinitions.FirstOrDefault(x => x.Id == parentGroupDefinitionId) is not GroupDefinition foundGroupDefinition)
 		{
 			foreach (var definition in groupDefinitions)
 			{
-				return FindByRecursive(definition.GroupDefinitions, grandParentId);
+				return FindByRecursive(definition.GroupDefinitions, parentGroupDefinitionId);
 			}
+			return new GroupDefinition();
 		}
 		else
 		{
@@ -109,7 +102,7 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 	{
 		try
 		{
-			var jsonText = System.Text.Json.JsonSerializer.Serialize(_groupDefinitions.ToList<GroupDefinitionBase>(), _options);
+			var jsonText = System.Text.Json.JsonSerializer.Serialize(GroupDefinitions.ToList<GroupDefinition>(), _options);
 			var path = _pathsProvider.GetGroupsJsonPath();
 			File.WriteAllText(path, jsonText);
 			return ServiceResponse<bool>.Success();
@@ -121,78 +114,25 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 		}
 	}
 
-	public ServiceResponse<IEnumerable<ParentGroupDefinition>> GetGroupDefinitions()
+	public ServiceResponse<IEnumerable<GroupDefinition>> GetGroupDefinitions()
 	{
-		return ServiceResponse<IEnumerable<ParentGroupDefinition>>.Success(_groupDefinitions);
+		return ServiceResponse<IEnumerable<GroupDefinition>>.Success(GroupDefinitions);
 	}
 
-	public ServiceResponse<GroupDefinition> RemovePattern(int groupId, string pattern)
-	{
-		try
-		{
-			if (string.IsNullOrWhiteSpace(pattern))
-			{
-				return ServiceResponse<GroupDefinition>.Fail($"Pattern name cannot be empty");
-			}
-			var group = _groupDefinitions.FirstOrDefault(g => g.Id == groupId);
-			if (group is null)
-			{
-				return ServiceResponse<GroupDefinition>.Fail($"Activity group with {groupId} id was not found");
-			}
-			var existingPattern = group.Patterns.FirstOrDefault(x => x.Sentence.Equals(pattern));
-			if (existingPattern is null)
-			{
-				return ServiceResponse<GroupDefinition>.Fail($"Pattern {pattern} in group with {groupId} id was not found");
-			}
-			_remainingActivities.AddRange(existingPattern.Activities);
-			group.Patterns.Remove(existingPattern);
-			UpdateUngrouped();
-			return ServiceResponse<GroupDefinition>.Success(group);
-		}
-		catch (Exception ex)
-		{
-			_appLogger.LogError(ex.Message);
-			return ServiceResponse<GroupDefinition>.Fail(ex.Message);
-		}
-	}
 
-	public ServiceResponse<GroupDefinition> AddPattern(int groupId, string pattern)
-	{
-		try
-		{
-			if (string.IsNullOrWhiteSpace(pattern))
-			{
-				return ServiceResponse<GroupDefinition>.Fail($"Pattern name cannot be empty");
-			}
-			var group = _groupDefinitions.FirstOrDefault(g => g.Id == groupId);
-			if (group is null)
-			{
-				return ServiceResponse<GroupDefinition>.Fail($"Activity group with {groupId} id was not found");
-			}
-			group.Patterns.Add(new Pattern { Sentence = pattern });
-			UpdateUngrouped();
-			return ServiceResponse<GroupDefinition>.Success(group);
-		}
-		catch (Exception ex)
-		{
-			_appLogger.LogError(ex.Message);
-			return ServiceResponse<GroupDefinition>.Fail(ex.Message);
-		}
-	}
+
 
 	public ServiceResponse<GroupDefinition> RemoveGroup(int groupId)
 	{
 		try
 		{
-			var group = _groupDefinitions.FirstOrDefault(g => g.Id == groupId);
+			var group = GroupDefinitions.FirstOrDefault(g => g.Id == groupId);
 			if (group is null)
 			{
 				return ServiceResponse<GroupDefinition>.Fail($"Activity group with {groupId} id was not found");
 			}
-			_remainingActivities.AddRange(group.Activities);
-			if (_groupDefinitions.Remove(group))
+			if (GroupDefinitions.Remove(group))
 			{
-				UpdateUngrouped();
 				return ServiceResponse<GroupDefinition>.Success();
 			}
 			else
@@ -209,90 +149,7 @@ public class GroupDefinitionService : IInitializable, IGroupDefinitionService
 
 	public const string Ungrouped = "Ungrouped";
 
-	private bool UpdateUngrouped()
-	{
-		var totalDuration = TimeSpan.FromTicks(_remainingActivities.Sum(a => a.Duration.Ticks));
-
-		var ungroupedGroup = _groupDefinitions.OfType<GroupDefinition>().FirstOrDefault(g => g.Name == Ungrouped);
-
-		if (ungroupedGroup is null && totalDuration > TimeSpan.Zero && _groupDefinitions.Count != 0)
-		{
-			ungroupedGroup = new GroupDefinition
-			{
-				Name = Ungrouped,
-				TotalDuration = totalDuration
-			};
-			_groupDefinitions.Add(ungroupedGroup);
-		}
-		else if (ungroupedGroup is null && _groupDefinitions.Count == 0)
-		{
-			ungroupedGroup = new GroupDefinition
-			{
-				Name = Ungrouped,
-				TotalDuration = totalDuration
-			};
-			_groupDefinitions.Add(ungroupedGroup);
-		}
-		else if (ungroupedGroup is not null)
-		{
-			ungroupedGroup.Activities = new List<Activity>(_remainingActivities);
-			ungroupedGroup.TotalDuration = totalDuration;
-		}
-		else
-		{
-			return false;
-		}
-		return true;
-	}
 
 	private List<Activity> _remainingActivities = [];
 	private int _indexCounter;
-
-	public void RegroupActivities()
-	{
-		if (!GetActivities())
-		{
-			return;
-		}
-
-		foreach (var group in _groupDefinitions.OfType<GroupDefinition>().Where(x => !x.Name.Equals(Ungrouped)))
-		{
-			group.Activities.Clear();
-			foreach (var pattern in group.Patterns)
-			{
-				var regex = new Regex(pattern.Sentence, RegexOptions.IgnoreCase);
-				var matchingActivities = _remainingActivities.Where(a => regex.IsMatch(a.Name)).ToList();
-
-				foreach (var activity in matchingActivities)
-				{
-					group.Activities.Add(activity);
-					pattern.Activities.Add(activity);
-					_remainingActivities.Remove(activity);
-				}
-			}
-			group.TotalDuration = TimeSpan.FromTicks(group.Activities.Sum(a => a.Duration.Ticks));
-		}
-	}
-
-
-
-	
-
-	public List<Activity> GetRemainingActivities()
-	{
-		return _remainingActivities;
-	}
-
-	public ServiceResponse<bool> UpdateGroupDefinitions(IEnumerable<GroupDefinition> GroupDefinitions)
-	{
-		try
-		{
-			_groupDefinitions = GroupDefinitions.ToList();
-		}
-		catch (Exception ex)
-		{
-			return ServiceResponse<bool>.Fail(ex.Message);
-		}
-		return ServiceResponse<bool>.Success();
-	}
 }

@@ -9,70 +9,77 @@ namespace Client.Services;
 /// <summary>
 /// Provides the groups for the viewmodel to display.
 /// </summary>
-public class GroupsProvider : IGroupsProvider
+public class GroupsProvider 
 {
-	public ObservableCollection<GroupViewModelBase> GroupViewModels(List<Activity> activities, List<ParentGroupDefinition> groupDefinition)
+	public static ObservableCollection<GroupViewModel> GroupViewModels(List<Activity> activities, List<GroupDefinition> groupDefinition)
 	{
-		//TODO: Implement Logic
-		return new ObservableCollection<GroupViewModelBase>(GroupActivities(activities, groupDefinition));
+		return new ObservableCollection<GroupViewModel>(GroupActivities(activities, groupDefinition));
 	}
-	private List<GroupViewModelBase> GroupActivities(List<Activity> activities, List<ParentGroupDefinition> groupDefinitions)
+	private static List<GroupViewModel> GroupActivities(List<Activity> activities, List<GroupDefinition> groupDefinitions)
 	{
-		var result = new List<GroupViewModelBase>();
+		var result = new List<GroupViewModel>();
 		TimeSpan time = TimeSpan.Zero;
 		foreach (var groupDefinition in groupDefinitions)
 		{
 			result.Add(GroupByPattern(activities, time, groupDefinition));
 		}
-
+		result.Add(UngroupedGroup(activities));
 		return result;
 	}
 
-	private static GroupViewModelBase GroupByPattern(List<Activity> activities, TimeSpan time, ParentGroupDefinition groupDefinition)
+	private static GroupViewModel UngroupedGroup(List<Activity> activities)
 	{
-		foreach (GroupDefinitionBase group in groupDefinition.GroupDefinitions)
-		{
-			if (group is ParentGroupDefinition parentGroupDefinition)
-			{
-				return GroupByPattern(activities, time, parentGroupDefinition);
-			}
-			else if (group is ChildGroupDefinition childGroupDefinition)
-			{
-				return GroupByPattern(activities, time, childGroupDefinition);
-			}
-			else
-			{
-				throw new NotSupportedException();
-			}
-		}
-		return new GroupViewModelBase(new GroupDefinition());
+		return GroupViewModel.Ungrouped(activities);
 	}
-	private static ChildGroupViewModel GroupByPattern(List<Activity> activities, TimeSpan time, ChildGroupDefinition groupDefinition)
-	{
-		foreach (var pattern in groupDefinition.Patterns)
-		{
-			var regex = new Regex(pattern.Sentence, RegexOptions.IgnoreCase);
-			var matchingActivities = activities.Where(a => regex.IsMatch(a.Name)).ToList();
 
-			foreach (var activity in matchingActivities)
-			{
-				time += activity.Duration;
-				pattern.Activities.Add(activity);
-				activities.Remove(activity);
-			}
+	private static  GroupViewModel GroupByPattern(List<Activity> activities, TimeSpan time, GroupDefinition groupDefinition)
+	{
+		GroupViewModel groupViewModel= new(groupDefinition);
+
+		var regex = new Regex(groupDefinition.Pattern, RegexOptions.IgnoreCase);
+		var matchingActivities = activities.Where(a => regex.IsMatch(a.Name)).ToList();
+
+		foreach (var activity in matchingActivities)
+		{
+			time += activity.TotalDuration;
+			groupViewModel.Activities.Add(activity);
+			activities.Remove(activity);
 		}
 
-		return (ChildGroupViewModel)ViewModelFactory.Create(groupDefinition);
+
+		foreach (var group in groupDefinition.GroupDefinitions)
+		{
+			 regex = new Regex(group.Pattern, RegexOptions.IgnoreCase);
+			 matchingActivities = groupViewModel.Activities.Where(a => regex.IsMatch(a.Name)).ToList();
+			time = TimeSpan.Zero;
+			groupViewModel.Groups.Add(GroupByPattern(matchingActivities, time, group));
+		}
+
+		return groupViewModel;
 	}
 }
 
-public class GroupViewModelBase : ObservableObject
-{
-	private readonly GroupDefinitionBase _groupDefinitionBase;
 
-	public GroupViewModelBase(GroupDefinitionBase groupDefinitionBase)
+public class GroupViewModel : ObservableObject
+{
+	private readonly GroupDefinition _groupDefinitionBase;
+	private GroupViewModel()
+	{
+		_groupDefinitionBase = new GroupDefinition()
+		{
+			Name = "Ungrouped",
+			SKColor = SKColor.Parse("000000"),
+		};
+	}
+	public GroupViewModel(GroupDefinition groupDefinitionBase)
 	{
 		_groupDefinitionBase = groupDefinitionBase;
+		Activities.CollectionChanged += Activities_CollectionChanged;
+	}
+
+	private void Activities_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+	{
+		Duration =TimeSpan.FromMilliseconds( Activities.Sum(x => x.TotalDuration.TotalMilliseconds));
 	}
 
 	public string Name
@@ -80,8 +87,11 @@ public class GroupViewModelBase : ObservableObject
 		get => _groupDefinitionBase.Name;
 		set
 		{
-			_groupDefinitionBase.Name = value;
-			OnPropertyChanged();
+			if(_groupDefinitionBase is not null)
+			{
+				_groupDefinitionBase.Name = value;
+				OnPropertyChanged();
+			}
 		}
 	}
 
@@ -96,38 +106,17 @@ public class GroupViewModelBase : ObservableObject
 	}
 
 
-	public TimeSpan Duratio => _groupDefinitionBase.Duration;
+	public TimeSpan Duration { get; private set; }
 
-}
+	public ObservableCollection<Activity> Activities { get; set; } = [];
 
-public static class ViewModelFactory
-{
-	public static GroupViewModelBase Create(GroupDefinitionBase groupDefinitionBase)=>groupDefinitionBase switch
+	public ObservableCollection<GroupViewModel> Groups { get; set; } = [];
+
+	public static GroupViewModel Ungrouped(IEnumerable<Activity> activities) => new()
 	{
-		ChildGroupDefinition childDef => new ChildGroupViewModel(childDef),
-		ParentGroupDefinition parentDef => new ParentGroupViewModel(parentDef),
-		_ => throw new NotImplementedException()
+		Activities = new(activities)
 	};
 }
 
 
-public class ParentGroupViewModel : GroupViewModelBase
-{
-	public ParentGroupViewModel(ParentGroupDefinition parentGroupDefinition) : base(parentGroupDefinition)
-	{
-		Groups = new ObservableCollection<ChildGroupViewModel>(
-			parentGroupDefinition.GroupDefinitions.Select(x => (ViewModelFactory.Create(x) as ChildGroupViewModel)!));
-	}
-	public ObservableCollection<ChildGroupViewModel> Groups { get; set; } = [];
-
-}
-
-public class ChildGroupViewModel : GroupViewModelBase
-{
-	public ChildGroupViewModel(ChildGroupDefinition childGroupDefinition) : base(childGroupDefinition)
-	{
-		Patterns = new(childGroupDefinition.Patterns);
-	}
-	public ObservableCollection<Pattern> Patterns { get; set; }
-}
 

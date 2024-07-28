@@ -7,6 +7,7 @@
     xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="[models ]clr-namespace:Client.Models"
+    xmlns:services="clr-namespace:Client.Services"
     xmlns:viewmodels="clr-namespace:Client.ViewModels"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     Title="Activity Analyzer"
@@ -19,6 +20,8 @@
     <Window.Resources>
         <local:DivideBy2Converter x:Key="DivideBy2" />
         <local:ColorConverter x:Key="ColorConverter" />
+        <local:WidthConverter x:Key="WidthConverter" />
+        <local:DateTimeToPositionConverter x:Key="DateTimeToPositionConverter" />
 
 
         <Style TargetType="Button">
@@ -61,16 +64,53 @@
         </Style>
 
 
-
     </Window.Resources>
     <Grid Margin="10">
-
-
         <Grid.RowDefinitions>
+            <RowDefinition Height="35" />
             <RowDefinition Height="35" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Grid>
+
+        <Grid HorizontalAlignment="Stretch">
+            <ItemsControl ItemsSource="{Binding Activities}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="viewmodels:ActivityViewModel">
+                        <Rectangle Fill="{Binding Color}" ToolTip="{Binding}"  Height="20">
+                            <Rectangle.Width>
+                                <MultiBinding Converter="{StaticResource WidthConverter}">
+                                    <MultiBinding.Bindings>
+                                        <Binding Path="Width" />
+                                        <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                    </MultiBinding.Bindings>
+                                </MultiBinding>
+                            </Rectangle.Width>
+                        </Rectangle>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left">
+                            <Setter.Value>
+                                <MultiBinding Converter="{StaticResource DateTimeToPositionConverter}">
+                                    <Binding Path="CreatedDate" />
+                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                    <Binding Path="DataContext.FirstDate" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                    <Binding Path="DataContext.LastDate" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                </MultiBinding>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+            </ItemsControl>
+        </Grid>
+
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -78,8 +118,9 @@
             </Grid.ColumnDefinitions>
 
             <ComboBox
-                ItemsSource="{Binding ActivityFiles}"
-                SelectedItem="{Binding CurrentActivityFile}"
+                DisplayMemberPath="Name"
+                ItemsSource="{Binding Sessions}"
+                SelectedItem="{Binding CurrentSession}"
                 Style="{DynamicResource ComboBoxStyle1}" />
             <Button
                 Grid.Column="1"
@@ -87,7 +128,7 @@
                 Command="{Binding SaveGroupsToFileCommand}"
                 Content="Save Groups" />
         </Grid>
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -110,7 +151,7 @@
                 <ListView
                     Grid.Row="1"
                     Background="{StaticResource Background}"
-                    ItemsSource="{Binding GroupDefinitions}"
+                    ItemsSource="{Binding Groups}"
                     SelectedItem="{Binding SelectedGroup}"
                     VirtualizingPanel.ScrollUnit="Pixel">
                     <ListView.ContextMenu>
@@ -127,22 +168,22 @@
                             <Expander Header="{Binding Name}">
 
                                 <StackPanel>
-                                    <ItemsControl ItemsSource="{Binding Patterns}">
+                                    <ItemsControl ItemsSource="{Binding Groups}">
                                         <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
+                                            <DataTemplate DataType="services:GroupViewModel">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="140" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
 
-                                                    <TextBlock Margin="5,0,0,0" Text="{Binding Sentence}" />
+                                                    <TextBlock Margin="5,0,0,0" Text="{Binding Name}" />
                                                     <Button
                                                         Grid.Column="1"
                                                         Width="20"
                                                         Height="20"
                                                         Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                        CommandParameter="{Binding Sentence}">
+                                                        CommandParameter="{Binding Name}">
                                                         <Button.Content>
                                                             <TextBlock
                                                                 VerticalAlignment="Center"
@@ -154,7 +195,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="{Binding TotalDuration, StringFormat=Total Duration: {0:hh\\:mm\\:ss}}" />
+                                    <TextBlock Text="{Binding Duration, StringFormat=Total Duration: {0:hh\\:mm\\:ss}}" />
                                 </StackPanel>
                             </Expander>
                         </DataTemplate>
@@ -173,13 +214,14 @@
                 </StackPanel>
             </Grid>
 
-            <lvc:PieChart
+            <lvc:CartesianChart
                 Title="{Binding Title}"
                 Grid.Row="1"
                 Grid.Column="1"
-                LegendPosition="Right"
-                Series="{Binding Series, UpdateSourceTrigger=PropertyChanged}" />
-
+                LegendPosition="Bottom"
+                Series="{Binding Series}"
+                TooltipPosition="Hidden"
+                XAxes="{Binding XAxes}" />
             <ListBox
                 Grid.Row="1"
                 Grid.Column="2"

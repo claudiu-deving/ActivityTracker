@@ -5,6 +5,6 @@ namespace Client.Services
 {
 	public interface IGroupsProvider
 	{
-		ObservableCollection<GroupViewModelBase> GroupViewModels(List<Activity> activities, List<ParentGroupDefinition> groupDefinition);
+		ObservableCollection<GroupViewModel> GroupViewModels(List<Activity> activities, List<GroupDefinition> groupDefinition);
 	}
 }

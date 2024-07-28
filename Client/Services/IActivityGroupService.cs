@@ -1,24 +1,15 @@
 ﻿using Client.Models;
+using System.Collections.ObjectModel;
 
 namespace Client.Services;
 
 public interface IGroupDefinitionService
 {
-	void AddGroup(GroupDefinition GroupDefinition);
+	ObservableCollection<GroupDefinition> GroupDefinitions { get; set; }
 
-	ServiceResponse<GroupDefinition> AddPattern(int groupId, string pattern);
+	void AddGroup(GroupDefinition GroupDefinition);
 
 	ServiceResponse<IEnumerable<GroupDefinition>> GetGroupDefinitions();
 
-	List<Activity> GetRemainingActivities();
-
-	void RegroupActivities();
-
-	ServiceResponse<GroupDefinition> RemoveGroup(int groupId);
-
-	ServiceResponse<GroupDefinition> RemovePattern(int groupId, string pattern);
-
 	ServiceResponse<bool> Save();
-
-	ServiceResponse<bool> UpdateGroupDefinitions(IEnumerable<GroupDefinition> GroupDefinitions);
 }

@@ -23,7 +23,7 @@ public class SessionService : ISessionService
 			Directory.CreateDirectory(directory);
 			return _sessions;
 		}
-		var filteredJsonFiles = Directory.GetFiles(directory, "window_times_filtered_*.json");
+		var filteredJsonFiles = Directory.GetFiles(directory, "window_times_*.json");
 		int counter = 0;
 		foreach (var file in filteredJsonFiles)
 		{

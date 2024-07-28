@@ -1,4 +1,5 @@
 ﻿using Client.Models;
+using Shared;
 using System.IO;
 using System.Text.Json;
 
@@ -23,11 +24,11 @@ public static class SessionFactory
 		if (session == null) return activities;
 		if (!File.Exists(session))
 		{
-			File.WriteAllText(session, JsonSerializer.Serialize(new Dictionary<string, TimeSpan>()));
+			File.WriteAllText(session, JsonSerializer.Serialize(new HashSet<WindowTimeEntry>()));
 		}
 		var jsonText = File.ReadAllText(session);
 
-		var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, TimeSpan>>(jsonText);
+		var dictionary = System.Text.Json.JsonSerializer.Deserialize<HashSet<WindowTimeEntry>>(jsonText);
 
 		if (dictionary is null)
 		{
@@ -36,7 +37,7 @@ public static class SessionFactory
 
 		foreach (var kvp in dictionary)
 		{
-			activities.Add(new Activity { Name = kvp.Key, Duration = kvp.Value });
+			activities.Add(new Activity(kvp.WindowName,kvp.Entries));
 		}
 		return activities;
 	}

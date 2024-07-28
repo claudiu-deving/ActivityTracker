@@ -1,4 +1,5 @@
 ﻿using Client.Models;
+using System.IO;
 
 namespace Client.Services;
 
@@ -10,12 +11,13 @@ namespace Client.Services;
 /// <param name="activities"></param>
 public class Session(string file, int id, IEnumerable<Activity> activities)
 {
+	public string Name { get; }=Path.GetFileName(file);
 	public string File { get; } = file;
 	public DateTime Created { get; } = System.IO.File.GetCreationTimeUtc(file);
 	public int Id { get; } = id;
 
 	public List<Activity> Activities { get; } = activities.ToList();
-	public TimeSpan TotalDuration { get; } = TimeSpan.FromSeconds(activities.Sum(x => x.Duration.TotalSeconds));
+	public TimeSpan TotalDuration { get; } = TimeSpan.FromSeconds(activities.Sum(x => x.TotalDuration.TotalSeconds));
 
 	public static Session Empty => new(string.Empty, 0, []);
 }

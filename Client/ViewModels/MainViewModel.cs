@@ -6,13 +6,11 @@ using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using LiveChartsCore.SkiaSharpView.VisualElements;
-
+using Shared;
 using SkiaSharp;
 
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Windows.Media;
 
 using Xceed.Wpf.Toolkit;
@@ -24,30 +22,32 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private readonly IGroupDefinitionService _GroupDefinitionService;
 	private readonly IActivityService _activityService;
 	private readonly Dictionary<Color, SKColor> _colorsMapping = [];
+	private readonly ActivityRepository _repository;
+	[ObservableProperty]
+	private ObservableCollection<Session> _sessions;
 
 	[ObservableProperty]
-	private ObservableCollection<Activity> _activities;
-
-	[ObservableProperty]
-	private ObservableCollection<GroupDefinition> _GroupDefinitions;
+	private ObservableCollection<GroupViewModel> _groups = [];
 
 	private ColorItem _colorItem;
 
-	private string _currentActivity = string.Empty;
+	private Session? _currentSession;
 
-	public string CurrentActivity
+	public Session? CurrentSession
 	{
-		get => _currentActivity;
+		get => _currentSession;
 		set
 		{
-			if (!_currentActivity.Equals(value))
+			if (_currentSession is not null && !_currentSession.Equals(value))
 			{
-				_currentActivity = value;
-				OnPropertyChanged();
-				_activityService.SetCurrentActivity(value);
-				_GroupDefinitionService.RegroupActivities();
-				UpdateGroupDefinitions();
+				_currentSession = value;
+				
 			}
+			else
+			{
+				_currentSession = value;
+			}
+			OnPropertyChanged();
 		}
 	}
 
@@ -58,16 +58,48 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private ObservableCollection<Activity> _remainingActivities;
 
 	[ObservableProperty]
-	private GroupDefinition _selectedGroup;
+	private GroupViewModel _selectedGroup;
 
-	public MainViewModel(IGroupDefinitionService GroupDefinitionService, IActivityService activityService)
+	[ObservableProperty]
+	private ObservableCollection<ActivityViewModel> _activities=[];
+
+	private readonly Random _random = new();
+	private SolidColorBrush GetRandomColor()
 	{
-		_GroupDefinitionService = GroupDefinitionService;
-		_activityService = activityService;
-		Activities = [];
-		_remainingActivities = [];
-		GroupDefinitions = [];
-		GroupDefinitions.CollectionChanged += GroupDefinitions_CollectionChanged;
+		return new SolidColorBrush(Color.FromRgb(
+		(byte)_random.Next(256),
+		(byte)_random.Next(256),
+		(byte)_random.Next(256)));
+	}
+	[ObservableProperty]
+	private DateTime _firstDate;
+	[ObservableProperty]
+	private DateTime _lastDate;
+
+	public MainViewModel(ActivityRepository repository, ISessionService sessionService)
+	{
+		_repository = repository;
+		Sessions = new(sessionService.GetSessions());
+		CurrentSession = Sessions.FirstOrDefault(x => x.Created.Day.Equals(DateTime.UtcNow.Day));
+
+		if (CurrentSession is not null)
+		{
+			var totalDuration = CurrentSession.Activities.Sum(x=>x.TotalDuration.TotalSeconds);
+			FirstDate = CurrentSession.Activities.Min(x => x.Durations.Min(x=>x.Key));
+			LastDate = CurrentSession.Activities.Max(x => x.Durations.Max(x => x.Key));
+			foreach (var activity in CurrentSession.Activities)
+			{
+				var color = GetRandomColor();
+				
+				foreach (var entry in activity.Durations)
+				{
+					var width = entry.Value.TotalSeconds / totalDuration * 100;
+					Activities.Add(new ActivityViewModel(activity.Name, entry.Key, entry.Value, color, width));
+				}
+			}
+		}
+		Activities  =new ObservableCollection<ActivityViewModel>(Activities.OrderBy(x => x.CreatedDate));
+		UpdateGroups();
 		var colors = typeof(SKColors)
 				 .GetFields(BindingFlags.Static | BindingFlags.Public)
 				 .Select(fld =>
@@ -80,6 +112,22 @@ public partial class MainViewModel : ObservableObject, IInitializable
 				 .ToList();
 		AvailableColors = new(colors);
 		AddPatternCommand = new LocalRelayCommand(AddPattern, CanAddPattern);
+	}
+
+
+
+	private void UpdateGroups()
+	{
+		Groups.Clear();
+
+		if (CurrentSession is not null)
+		{
+			var groups = _repository.GetGroups(CurrentSession.Id);
+			foreach (var group in groups)
+			{
+				Groups.Add(group);
+			}
+		}
 	}
 
 	[ObservableProperty]
@@ -95,7 +143,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		{
 			_colorItem = value;
 			OnPropertyChanged();
-			SelectedGroup.SKColor = _colorsMapping[value.Color ?? Colors.Black];
+			SelectedGroup.Color = _colorsMapping[value.Color ?? Colors.Black];
 			RedrawGraph();
 		}
 	}
@@ -115,38 +163,14 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		return await Task.Run(async () =>
 		{
-			var serviceInitializationResponse = await ((IInitializable)_GroupDefinitionService).Initialize();
-			if (!serviceInitializationResponse.IsSuccess)
-			{
-				return ServiceResponse<bool>.Fail(serviceInitializationResponse.Message);
-			}
-			_GroupDefinitionService.RegroupActivities();
-			var getActivitiesResponse = _activityService.GetActivities();
-			if (!getActivitiesResponse.IsSuccess || getActivitiesResponse.Data is null)
-			{
-				return ServiceResponse<bool>.Fail(getActivitiesResponse.Message);
-			}
-			Activities = new(getActivitiesResponse.Data);
-			UpdateGroupDefinitions();
-			InitializeActivityFiles();
-			RedrawGraph();
+			//TODO: Implement
 			return ServiceResponse<bool>.Success(true);
 		});
 	}
 
 	private void InitializeActivityFiles()
 	{
-		var filesRetrievalResponse = _activityService.GetActivityNames();
-		if (!filesRetrievalResponse.IsSuccess || filesRetrievalResponse.Data is null)
-		{
-			MessageBox.Show(filesRetrievalResponse.Message);
-		}
-		ActivityFiles = new(filesRetrievalResponse.Data!);
-	}
 
-	private void GroupDefinitions_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-	{
-		RedrawGraph();
 	}
 
 	[RelayCommand]
@@ -154,13 +178,12 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		var newGroup = new GroupDefinition { Name = "New Group" };
 		_GroupDefinitionService.AddGroup(newGroup);
-		SelectedGroup = newGroup;
+
 		Refresh();
 	}
 
 	private void AddPattern()
 	{
-		SelectedGroup.Patterns.Add(new Pattern(NewPatternInput));
 		NewPatternInput = string.Empty;
 		Refresh();
 	}
@@ -170,18 +193,18 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	private void RedrawGraph()
 	{
 		Series.Clear();
-		foreach (var group in GroupDefinitions)
+		foreach (var group in Groups)
 		{
-			if (group.TotalDuration == TimeSpan.Zero) continue;
+			if (group.Duration == TimeSpan.Zero) continue;
 			var series = new PieSeries<double>()
 			{
-				Values = [Math.Round(Math.Floor(group.TotalDuration.TotalMinutes / 60) + (group.TotalDuration.TotalMinutes % 60 / 100.0), 2)],
+				Values = [Math.Round(Math.Floor(group.Duration.TotalMinutes / 60) + (group.Duration.TotalMinutes % 60 / 100.0), 2)],
 				Name = group.Name,
 				DataLabelsPaint = new SolidColorPaint(SKColors.Black),
 				DataLabelsSize = 18,
 				DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
 				DataLabelsFormatter = point => $"{group.Name}: {point.Coordinate.PrimaryValue} ",
-				Fill = new SolidColorPaint(group.SKColor)
+				Fill = new SolidColorPaint(group.Color)
 			};
 			Series.Add(series);
 		}
@@ -192,10 +215,6 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		if (SelectedGroup != null)
 		{
-			if (!_GroupDefinitionService.RemoveGroup(SelectedGroup.Id).IsSuccess)
-			{
-				//TODO: Present error message
-			}
 			SelectedGroup = null;
 			Refresh();
 		}
@@ -203,8 +222,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	private void Refresh()
 	{
-		_GroupDefinitionService.RegroupActivities();
-		UpdateGroupDefinitions();
+		UpdateGroups();
 		RedrawGraph();
 	}
 
@@ -213,11 +231,6 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		if (SelectedGroup != null)
 		{
-			var patternToRemove = SelectedGroup.Patterns.FirstOrDefault(x => x.Sentence.Equals(pattern));
-			if (patternToRemove != null)
-			{
-				_GroupDefinitionService.RemovePattern(SelectedGroup.Id, patternToRemove.Sentence);
-			}
 			Refresh();
 		}
 	}
@@ -227,11 +240,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	{
 		if (SelectedGroup != null)
 		{
-			var patternToRemove = GroupDefinitions.FirstOrDefault(x => x.Id.Equals(SelectedGroup.Id));
-			if (patternToRemove != null)
-			{
-				patternToRemove.Name = NewPatternInput;
-			}
+
 			Refresh();
 		}
 	}
@@ -245,19 +254,18 @@ public partial class MainViewModel : ObservableObject, IInitializable
 		}
 	}
 
-	private bool UpdateGroupDefinitions()
+}
+
+public class ActivityViewModel(string name, DateTime createdDate, TimeSpan duration,SolidColorBrush solidColorBrush, double width)
+{
+	public string Name => name;
+	public DateTime CreatedDate => createdDate;
+	public TimeSpan Duration => duration;
+	public SolidColorBrush Color => solidColorBrush;
+	public double Width => width;
+
+	public override string ToString()
 	{
-		var response = _GroupDefinitionService.GetGroupDefinitions();
-		RemainingActivities = new(_GroupDefinitionService.GetRemainingActivities());
-		if (response.IsSuccess && response.Data is not null)
-		{
-			GroupDefinitions = new(response.Data);
-			return true;
-		}
-		else
-		{
-			//TODO: Present error message
-			return false;
-		}
+		return $"{CreatedDate:dd-hh:mm:ss} - {Duration}: {Name}";
 	}
 }

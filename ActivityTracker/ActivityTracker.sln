@@ -13,7 +13,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LLMLibrary", "..\LLMLibrary
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientTests", "..\ClientTests\ClientTests.csproj", "{2F4DB133-6D12-483C-8180-EC43F0E50558}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BiTLuZ.InfraLib", "..\..\..\Libraries\Bitluz.InfraLib\BiTLuZ.InfraLib\BiTLuZ.InfraLib.csproj", "{49AA0D04-E876-47B8-BD33-4E6C8397A582}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BiTLuZ.InfraLib", "..\..\..\Libraries\Bitluz.InfraLib\BiTLuZ.InfraLib\BiTLuZ.InfraLib.csproj", "{49AA0D04-E876-47B8-BD33-4E6C8397A582}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker.View", "..\ActivityTracker.View\ActivityTracker.View\ActivityTracker.View.csproj", "{21A41FC3-C450-445C-9641-E56B218C6CD9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker.View.Android", "..\ActivityTracker.View\ActivityTracker.View.Android\ActivityTracker.View.Android.csproj", "{C37111EC-5C1A-415C-8C54-1CA1AA0C42B3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker.View.Desktop", "..\ActivityTracker.View\ActivityTracker.View.Desktop\ActivityTracker.View.Desktop.csproj", "{D846949F-9249-4B6C-A99B-C09783B1681E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker.View.iOS", "..\ActivityTracker.View\ActivityTracker.View.iOS\ActivityTracker.View.iOS.csproj", "{14E19742-4EF7-4FC2-B66A-EB50EF44D8B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActivityTracker.View.Browser", "..\ActivityTracker.View\ActivityTracker.View.Browser\ActivityTracker.View.Browser.csproj", "{88F06B9C-1678-4FE2-969A-A6703778DAFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "..\Shared\Shared.csproj", "{573AB84D-7599-4DC1-855A-C7A7BECAC138}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +57,30 @@ Global
 		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49AA0D04-E876-47B8-BD33-4E6C8397A582}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21A41FC3-C450-445C-9641-E56B218C6CD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21A41FC3-C450-445C-9641-E56B218C6CD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21A41FC3-C450-445C-9641-E56B218C6CD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21A41FC3-C450-445C-9641-E56B218C6CD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C37111EC-5C1A-415C-8C54-1CA1AA0C42B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C37111EC-5C1A-415C-8C54-1CA1AA0C42B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C37111EC-5C1A-415C-8C54-1CA1AA0C42B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C37111EC-5C1A-415C-8C54-1CA1AA0C42B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D846949F-9249-4B6C-A99B-C09783B1681E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D846949F-9249-4B6C-A99B-C09783B1681E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D846949F-9249-4B6C-A99B-C09783B1681E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D846949F-9249-4B6C-A99B-C09783B1681E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14E19742-4EF7-4FC2-B66A-EB50EF44D8B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14E19742-4EF7-4FC2-B66A-EB50EF44D8B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14E19742-4EF7-4FC2-B66A-EB50EF44D8B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14E19742-4EF7-4FC2-B66A-EB50EF44D8B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88F06B9C-1678-4FE2-969A-A6703778DAFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88F06B9C-1678-4FE2-969A-A6703778DAFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88F06B9C-1678-4FE2-969A-A6703778DAFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88F06B9C-1678-4FE2-969A-A6703778DAFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{573AB84D-7599-4DC1-855A-C7A7BECAC138}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{573AB84D-7599-4DC1-855A-C7A7BECAC138}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{573AB84D-7599-4DC1-855A-C7A7BECAC138}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{573AB84D-7599-4DC1-855A-C7A7BECAC138}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
