@@ -10,12 +10,9 @@ namespace Client
 {
 	internal class WidthConverter : IMultiValueConverter
 	{
-		private double _count;
 		public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
 		{
-			var result = (double)values[0]/100 * (double)values[1];
-			_count += result;
-			Console.WriteLine($"{values[0]} {values[1]} {result} : {_count}");
+			var result = (double)values[0]/100 * ((double)values[1]);
             return result;
 		}
 
@@ -30,12 +27,14 @@ namespace Client
 		{
 			if (values[0] is DateTime dateTime &&
 				values[1] is double containerWidth &&
-				values[2] is DateTime firstDate &&
-				values[3] is DateTime lastDate)
+				values[2] is double totalDuration &&
+				values[3] is DateTime firstDate &&
+				values[4] is double lastDateWidth &&
+				values[5] is TimeSpan duration)
 			{
-				var total = (lastDate - firstDate).TotalSeconds;
-				var untilActivity = (dateTime - firstDate).TotalSeconds;
-				var result = (untilActivity / total) * containerWidth;
+				var untilActivity = (dateTime - firstDate).TotalSeconds - duration.TotalSeconds;
+				var percentage = untilActivity * (containerWidth - lastDateWidth);
+                var result = percentage / totalDuration;
 				return result;
 			}
 			return 0;

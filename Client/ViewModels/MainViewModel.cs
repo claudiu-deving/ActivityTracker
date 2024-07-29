@@ -41,7 +41,7 @@ public partial class MainViewModel : ObservableObject, IInitializable
 			if (_currentSession is not null && !_currentSession.Equals(value))
 			{
 				_currentSession = value;
-				
+				UpdateSessionGraph();
 			}
 			else
 			{
@@ -76,45 +76,59 @@ public partial class MainViewModel : ObservableObject, IInitializable
 	[ObservableProperty]
 	private DateTime _lastDate;
 
+	[ObservableProperty]
+	private double _lastDateWidth;
+
+	[ObservableProperty]
+	private double _totalDuration;
+
 	public MainViewModel(ActivityRepository repository, ISessionService sessionService)
 	{
 		_repository = repository;
 		Sessions = new(sessionService.GetSessions());
-		CurrentSession = Sessions.FirstOrDefault(x => x.Created.Day.Equals(DateTime.UtcNow.Day));
+		CurrentSession = Sessions.FirstOrDefault(x => x.Created.Day.Equals(DateTime.UtcNow.AddDays(0).Day));
+		UpdateSessionGraph();
+		//UpdateGroups();
+		//var colors = typeof(SKColors)
+		//		 .GetFields(BindingFlags.Static | BindingFlags.Public)
+		//		 .Select(fld =>
+		//		 {
+		//			 var skColor = (SKColor)fld.GetValue(null);
+		//			 var colorItem = new ColorItem(new Color() { R = skColor.Red, G = skColor.Green, B = skColor.Blue, A = skColor.Alpha }, fld.Name);
+		//			 _colorsMapping[colorItem.Color ?? Colors.Black] = skColor;
+		//			 return colorItem;
+		//		 })
+		//		 .ToList();
+		//AvailableColors = new(colors);
+		//AddPatternCommand = new LocalRelayCommand(AddPattern, CanAddPattern);
+	}
 
+	private void UpdateSessionGraph()
+	{
+		var activities = new List<ActivityViewModel>();
 		if (CurrentSession is not null)
 		{
-			var totalDuration = CurrentSession.Activities.Sum(x=>x.TotalDuration.TotalSeconds);
-			FirstDate = CurrentSession.Activities.Min(x => x.Durations.Min(x=>x.Key));
+			TotalDuration = CurrentSession.Activities.Sum(x => x.TotalDuration.TotalSeconds);
+
+			LastDateWidth = CurrentSession.Activities.Last().Durations.Last().Value.TotalSeconds / TotalDuration * 100;
+
+			FirstDate = CurrentSession.Activities.Min(x => x.Durations.Min(x => x.Key)).AddSeconds(-CurrentSession.Activities.First().Durations.First().Value.TotalSeconds);
 			LastDate = CurrentSession.Activities.Max(x => x.Durations.Max(x => x.Key));
+			IdleDuration = (LastDate - FirstDate).TotalSeconds + CurrentSession.Activities.Last().Durations.Last().Value.TotalSeconds - TotalDuration;
 			foreach (var activity in CurrentSession.Activities)
 			{
 				var color = GetRandomColor();
-				
+
 				foreach (var entry in activity.Durations)
 				{
-					var width = entry.Value.TotalSeconds / totalDuration * 100;
-					Activities.Add(new ActivityViewModel(activity.Name, entry.Key, entry.Value, color, width));
+					var width = entry.Value.TotalSeconds / (TotalDuration - IdleDuration) * 100;
+					activities.Add(new ActivityViewModel(activity.Name, entry.Key, entry.Value, color, width));
 				}
 			}
+
 		}
-		Activities  =new ObservableCollection<ActivityViewModel>(Activities.OrderBy(x => x.CreatedDate));
-		UpdateGroups();
-		var colors = typeof(SKColors)
-				 .GetFields(BindingFlags.Static | BindingFlags.Public)
-				 .Select(fld =>
-				 {
-					 var skColor = (SKColor)fld.GetValue(null);
-					 var colorItem = new ColorItem(new Color() { R = skColor.Red, G = skColor.Green, B = skColor.Blue, A = skColor.Alpha }, fld.Name);
-					 _colorsMapping[colorItem.Color ?? Colors.Black] = skColor;
-					 return colorItem;
-				 })
-				 .ToList();
-		AvailableColors = new(colors);
-		AddPatternCommand = new LocalRelayCommand(AddPattern, CanAddPattern);
+		Activities = new ObservableCollection<ActivityViewModel>(activities.OrderBy(x => x.CreatedDate));
 	}
-
-
 
 	private void UpdateGroups()
 	{
@@ -132,6 +146,8 @@ public partial class MainViewModel : ObservableObject, IInitializable
 
 	[ObservableProperty]
 	private ObservableCollection<string> _activityFiles;
+	[ObservableProperty]
+	private double _idleDuration;
 
 	public ObservableCollection<ColorItem> AvailableColors { get; }
 	public LocalRelayCommand AddPatternCommand { get; }

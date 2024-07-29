@@ -20,4 +20,9 @@ public class Session(string file, int id, IEnumerable<Activity> activities)
 	public TimeSpan TotalDuration { get; } = TimeSpan.FromSeconds(activities.Sum(x => x.TotalDuration.TotalSeconds));
 
 	public static Session Empty => new(string.Empty, 0, []);
+
+	public override string ToString()
+	{
+		return $"{Created} - {TotalDuration:hh\\:mm\\:ss}";
+	}
 }
